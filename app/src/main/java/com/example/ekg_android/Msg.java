@@ -19,12 +19,12 @@ public class Msg {
     // The message header byte
     public static final byte MSG_BYTE_HEAD = (byte)0xFF;
 
+
     // Table containing message body sizes
     private int g_msg_size_tab[] = new int[] {
-            1 + 4,        // 1B status, 4B addr
-            32 + 64,      // 32B SSID, 64B PSWD
-            64 + 4 + 2,   // 64B path + 4B addr + 2B port
-            4 + 2,        // 4B addr + 2B port
+            1,            // 1B status
+            160,          // 2 * (40 + 20 + 20)
+            4,            // 2B amplitude + 2B period
             1             // 1B instruction
     };
 
@@ -37,29 +37,23 @@ public class Msg {
     // Status of system (1 byte)
     private byte status;
 
-    // IP of the device (4 bytes)
-    private byte[] ip_addr;
+    // Training sets (N)
+    private byte[] train_amplitude_n;
+    private byte[] train_period_n;
 
-    // WiFi SSID buffer (32 bytes)
-    private byte[] wifi_ssid;
+    // Training sets (A)
+    private byte[] train_amplitude_a;
+    private byte[] train_period_a;
 
-    // WiFi PSWD buffer (64 bytes)
-    private byte[] wifi_pswd;
+    // Training sets (V)
+    private byte[] train_amplitude_v;
+    private byte[] train_period_v;
 
-    // Streaming address buffer (4 bytes)
-    private byte[] stream_addr;
+    // Sample Amplitude
+    private byte[] sample_amplitude;
 
-    // Streaming port buffer (2 bytes)
-    private byte[] stream_port;
-
-    // Streaming path (64 bytes)
-    private byte[] stream_path;
-
-    // Telemetry address buffer (4 bytes)
-    private byte[] telemetry_addr;
-
-    // Telemetry address port (2 bytes)
-    private byte[] telemetry_port;
+    // Sample Period
+    private byte[] sample_period;
 
     // Instruction byte for dispatching to device
     private byte device_instruction;
@@ -87,12 +81,9 @@ public class Msg {
 
     public static byte getInstructionByteValue (MsgInstructionType instructionType) {
         switch (instructionType) {
-            case INST_WIFI_ENABLE: return 0x0;
-            case INST_WIFI_DISABLE: return 0x1;
-            case INST_STREAM_ENABLE: return 0x2;
-            case INST_STREAM_DISABLE: return 0x3;
-            case INST_TELEMETRY_ENABLE: return 0x4;
-            case INST_TELEMETRY_DISABLE: return 0x5;
+            case INST_EKG_SAMPLE: return 0x0;
+            case INST_EKG_MONITOR: return 0x1;
+            case INST_EKG_IDLE: return 0x2;
             default:
                 Log.e("MSG", "No value for given instruction type!?");
         }
@@ -104,16 +95,40 @@ public class Msg {
 
     /* ********** Constructors ********** */
 
+    /*
+         private byte[] train_amplitude_n[];
+    private byte[] train_period_n[];
+
+    // Training sets (A)
+    private byte[] train_amplitude_a[];
+    private byte[] train_period_a[];
+
+    // Training sets (V)
+    private byte[] train_amplitude_v[];
+    private byte[] train_period_v[];
+
+    // Sample Amplitude
+    private byte[] sample_amplitude;
+
+    // Sample Period
+    private byte[] sample_period;
+     */
+
     public Msg () {
         this.msgType = MsgType.MSG_TYPE_MAX;
-        this.ip_addr = new byte[2];
-        this.wifi_ssid = new byte[32];
-        this.wifi_pswd = new byte[64];
-        this.stream_addr = new byte[4];
-        this.stream_port = new byte[2];
-        this.stream_path = new byte[64];
-        this.telemetry_addr = new byte[4];
-        this.telemetry_port = new byte[2];
+
+        // Training Message
+        this.train_amplitude_n = new byte[20 * 2];
+        this.train_period_n = new byte[20 * 2];
+        this.train_amplitude_a = new byte[10 * 2];
+        this.train_period_a = new byte[10 * 2];
+        this.train_amplitude_v = new byte[10 * 2];
+        this.train_period_v = new byte[10 * 2];
+
+        // Sample message
+        this.sample_amplitude = new byte[2];
+        this.sample_period = new byte[2];
+
         this.errorDescription = null;
         this.status = 0x0;
     }
@@ -122,7 +137,7 @@ public class Msg {
     /* ********** Message Configuration Methods ********** */
 
 
-    // Configures the instance to be a status message (not allowed to set IP here)
+    // Configures the instance to be a status message
     public Msg configureAsStatusMessage (byte status) {
 
         // Set the message type
@@ -131,10 +146,6 @@ public class Msg {
         // Set the status
         this.status = status;
 
-        // The IP field is always zeroed here
-
-        // Create address buffer (network byte order)
-        this.ip_addr = ByteBuffer.allocate(4).putInt(0).array();
 
         // Return instance
         return this;
