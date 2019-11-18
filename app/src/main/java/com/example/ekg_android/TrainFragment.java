@@ -54,6 +54,8 @@ public class TrainFragment extends Fragment implements View.OnClickListener, Lab
     // Handles the arrival of a sample
     private void onNewSample (int amplitude, int period) {
         this.pendingSample = new Sample(amplitude, period);
+        LabelDialog labelDialog = new LabelDialog(this.pendingSample, this);
+        labelDialog.show(getFragmentManager(), "Classify");
     }
 
 
@@ -71,9 +73,7 @@ public class TrainFragment extends Fragment implements View.OnClickListener, Lab
                 break;
             case R.id.button_sample:
                 System.out.println("Sampling");
-                LabelDialog labelDialog = new LabelDialog(new Sample(30, 25), this);
-                labelDialog.show(getFragmentManager(), "Classify");
-                //this.onNewSample(30,25);
+                this.onNewSample(30,25);
                 break;
         }
         refresh();

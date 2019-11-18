@@ -9,4 +9,10 @@
     <color name="inactiveTabColor">#0A0A0A</color>
     <color name="progressColor">#E91E63</color>
     <color name="completeColor">#8BC34A</color>
+
+    <color name="colorGreen">#8BC34A</color>
+    <color name="colorYellow">#FFC107</color>
+    <color name="colorWhite">#FFFFFF</color>
+    <color name="colorWarning">#E91E63</color>
+
 </resources>
