@@ -20,12 +20,24 @@ public class Msg {
     public static final byte MSG_BYTE_HEAD = (byte)0xFF;
 
 
+    /*
+    // Update this table with new message sizes as necessary
+    size_t g_msg_size_tab[MSG_TYPE_MAX] = {
+        [MSG_TYPE_STATUS]          = 1,           // 1B status
+        [MSG_TYPE_TRAIN_DATA]      = 160,         // 2 * (40 + 20 + 20)
+        [MSG_TYPE_SAMPLE_DATA]     = 1 + 2 + 2,   // 1B label + 2B (amp/period)
+        [MSG_TYPE_INSTRUCTION]     = 1,           // 1B inst
+        [MSG_TYPE_CONFIGURATION]   = 1 + 2,       // 1B comp, 2B value
+    };
+     */
+
     // Table containing message body sizes
     private int g_msg_size_tab[] = new int[] {
             1,            // 1B status
-            160,          // 2 * (40 + 20 + 20)
-            4,            // 2B amplitude + 2B period
-            1             // 1B instruction
+            160,          // Training data
+            5,            // Sample data
+            1,            // Instruction data,
+            3             // Configuration data
     };
 
 
@@ -49,6 +61,9 @@ public class Msg {
     private byte[] train_amplitude_v;
     private byte[] train_period_v;
 
+    // Sample label
+    private Classification sample_label;
+
     // Sample Amplitude
     private byte[] sample_amplitude;
 
@@ -57,6 +72,12 @@ public class Msg {
 
     // Instruction byte for dispatching to device
     private byte device_instruction;
+
+    // Configuration: Comparator type
+    private byte cfg_comp;
+
+    // Configuration: Value
+    private short cfg_val;
 
 
     /* ********** Internal Properties ********** */
@@ -81,9 +102,9 @@ public class Msg {
 
     public static byte getInstructionByteValue (MsgInstructionType instructionType) {
         switch (instructionType) {
-            case INST_EKG_SAMPLE: return 0x0;
-            case INST_EKG_MONITOR: return 0x1;
-            case INST_EKG_IDLE: return 0x2;
+            case INST_EKG_STOP: return 0x0;
+            case INST_EKG_START: return 0x1;
+            case INST_EKG_CONFIGURE: return 0x2;
             default:
                 Log.e("MSG", "No value for given instruction type!?");
         }
@@ -95,42 +116,36 @@ public class Msg {
 
     /* ********** Constructors ********** */
 
-    /*
-         private byte[] train_amplitude_n[];
-    private byte[] train_period_n[];
-
-    // Training sets (A)
-    private byte[] train_amplitude_a[];
-    private byte[] train_period_a[];
-
-    // Training sets (V)
-    private byte[] train_amplitude_v[];
-    private byte[] train_period_v[];
-
-    // Sample Amplitude
-    private byte[] sample_amplitude;
-
-    // Sample Period
-    private byte[] sample_period;
-     */
 
     public Msg () {
         this.msgType = MsgType.MSG_TYPE_MAX;
 
+        // Status
+        this.status = 0x0;
+
         // Training Message
         this.train_amplitude_n = new byte[20 * 2];
-        this.train_period_n = new byte[20 * 2];
+        this.train_period_n    = new byte[20 * 2];
+
         this.train_amplitude_a = new byte[10 * 2];
-        this.train_period_a = new byte[10 * 2];
+        this.train_period_a    = new byte[10 * 2];
+
         this.train_amplitude_v = new byte[10 * 2];
-        this.train_period_v = new byte[10 * 2];
+        this.train_period_v    = new byte[10 * 2];
 
         // Sample message
         this.sample_amplitude = new byte[2];
         this.sample_period = new byte[2];
 
+        // Instruction
+        this.device_instruction = getInstructionByteValue(MsgInstructionType.INST_EKG_STOP);
+
+        // Configuration
+        this.cfg_comp = 0x0;
+        this.cfg_val = 0;
+
+        // Error description
         this.errorDescription = null;
-        this.status = 0x0;
     }
 
 
@@ -146,101 +161,15 @@ public class Msg {
         // Set the status
         this.status = status;
 
-
         // Return instance
         return this;
     }
 
+    // Configures the instance to be a Training message
+    /* OMITTED */
 
-    // Configures the instance to be a WiFi message
-    public Msg configureAsWiFiDataMessage (String ssid, String pswd) {
-
-        // Set the message type
-        this.msgType = MsgType.MSG_TYPE_WIFI_DATA;
-
-        // Convert Java Strings to byte arrays
-        byte[] ssid_bytes = ssid.getBytes();
-        byte[] pswd_bytes = pswd.getBytes();
-
-        // Initialize the internal byte buffers
-        this.wifi_ssid = new byte[32];
-        this.wifi_pswd = new byte[64];
-
-        // Copy over data safely
-        System.arraycopy(ssid_bytes, 0, this.wifi_ssid, 0,
-                Math.min(this.wifi_ssid.length, ssid_bytes.length));
-        System.arraycopy(pswd_bytes, 0, this.wifi_pswd, 0,
-                Math.min(this.wifi_pswd.length, pswd_bytes.length));
-
-        // Return instance
-        return this;
-    }
-
-    // Configures the instance to be a Stream message
-    public Msg configureAsStreamDataMessage (String raw_url) throws MessageSerializationException {
-        URL url;
-        InetAddress addr;
-        int port = 80;
-
-        // Set the message type
-        this.msgType = MsgType.MSG_TYPE_STREAM_DATA;
-
-        // Configure as URL
-        try {
-            url = new URL(raw_url);
-        } catch (MalformedURLException exception) {
-            throw new MessageSerializationException(exception.toString());
-        }
-
-        // Extract base and path
-        String base = url.getHost();
-        String path = url.getPath().substring(1); // Strip the leading slash (/)
-
-        // Attempt to resolve the domain to an IP address
-        try {
-            addr = InetAddress.getByName(base);
-        } catch (UnknownHostException exception) {
-            throw new MessageSerializationException(exception.toString());
-        }
-
-        // Java streams use network byte order already. No need to convert
-        this.stream_addr = ByteBuffer.allocate(4).put(addr.getAddress()).array();
-
-        // Create port bytes
-        this.stream_port = ByteBuffer.allocate(2).putShort((short)port).array();
-
-        // Create path bytes
-        this.stream_path = ByteBuffer.allocate(64).put(path.getBytes()).array();
-
-        // Return instance
-        return this;
-    }
-
-    // Configures the instance to be a Telemetry message
-    public Msg configureAsTelemetryDataMessage (String raw_addr, String raw_port) throws MessageSerializationException {
-        InetAddress addr;
-
-        // Set the message type
-        this.msgType = MsgType.MSG_TYPE_TELEMETRY_DATA;
-
-        // Convert string form of the address to an InetAddress type
-        try {
-            addr = InetAddress.getByName(raw_addr);
-        } catch (UnknownHostException exception) {
-            throw new MessageSerializationException(exception.toString());
-        }
-
-
-        // Create address buffer (network byte order)
-        this.telemetry_addr = ByteBuffer.allocate(4).put(addr.getAddress()).array();
-
-        // Create port buffer
-        this.telemetry_port = ByteBuffer.allocate(2).putShort((short) Integer.parseInt(raw_port)).array();
-
-        // Return instance
-        return this;
-    }
-
+    // Configures the instance to be a Sample message
+    /* OMITTED */
 
     // Configures the instance to be a Instruction message
     public Msg configureAsInstructionDataMessage (MsgInstructionType instructionType) {
@@ -250,6 +179,14 @@ public class Msg {
 
         // Set the device instruction
         this.device_instruction = this.getInstructionByteValue(instructionType);
+
+        return this;
+    }
+
+    // Configures the instance to be a configuration method
+    public Msg configureAsConfigurationMessage (Comparator comparator, short value) {
+        this.cfg_comp = (byte)(comparator == Comparator.GREATER_THAN ? 0x0 : 0x1);
+        this.cfg_val = value;
 
         return this;
     }
@@ -302,64 +239,43 @@ public class Msg {
                 this.status = buffer[offset];
                 offset += 1;
 
-                // Deserialize IP address (big endian packed in little endian unpacked inverse)
-                this.ip_addr = new byte[]{buffer[offset],
-                        buffer[offset + 1], buffer[offset + 2], buffer[offset + 3]};
-                offset += 4;
-
             }
             break;
 
-            // Decoding WiFi data
-            case MSG_TYPE_WIFI_DATA: {
-                System.arraycopy(buffer, offset, this.wifi_ssid, 0, 32);
-                offset += 32;
-                System.arraycopy(buffer, offset, this.wifi_pswd, 0, 64);
-                offset += 64;
-            }
-            break;
 
-            // Decoding stream data
-            case MSG_TYPE_STREAM_DATA: {
+            // Decoding sample data
+            case MSG_TYPE_SAMPLE_DATA: {
 
-                // Unpack address (little endian -> big endian for JVM)
-                this.stream_addr = new byte[] {
-                        buffer[offset], buffer[offset + 1], buffer[offset + 2],
-                        buffer[offset + 3]
-                };
-                offset += 4;
+                // Unpack label (0x0 = N, 0x1 = A, 0x2 = V)
+                switch ((byte)(buffer[offset])) {
+                    case (byte)(0x0):
+                        this.sample_label = Classification.NORMAL;
+                        break;
+                    case (byte)(0x1):
+                        this.sample_label = Classification.ATRIAL;
+                        break;
+                    case (byte)(0x2):
+                        this.sample_label = Classification.VENTRICAL;
+                        break;
+                    default:
+                        this.sample_label = Classification.NONE;
+                        break;
 
-                // Unpack port (little endian -> big endian for JVM)
-                this.stream_port = new byte[] {
-                        buffer[offset], buffer[offset + 1]
-                };
+                }
+
+                // Increment offset
+                offset++;
+
+                // Unpack the integer as a short 16b
+                byte[] cfg_val_bytes = new byte[]{buffer[offset], buffer[offset + 1]};
+                this.cfg_val = ByteBuffer.wrap(cfg_val_bytes).getShort();
+
+                // Update offset
                 offset += 2;
 
-                // Unpack path buffer
-                System.arraycopy(buffer, offset, this.stream_path, 0, 64);
-                offset += 64;
+
             }
             break;
-
-
-            // Decoding telemetry data
-            case MSG_TYPE_TELEMETRY_DATA: {
-
-                // Unpack address (little endian -> big endian for JVM)
-                this.telemetry_addr = new byte[] {
-                        buffer[offset], buffer[offset + 1], buffer[offset + 2],
-                        buffer[offset + 3]
-                };
-                offset += 4;
-
-                // Unpack port (little endian -> big endian for JVM)
-                this.telemetry_port = new byte[] {
-                        buffer[offset], buffer[offset + 1]
-                };
-                offset += 2;
-            }
-            break;
-
 
             // Decoding instruction data
             case MSG_TYPE_INSTRUCTION_DATA: {
@@ -409,42 +325,6 @@ public class Msg {
                 buffer[offset] = this.status;
                 offset++;
 
-                // Set the address field (will be sent as big-endian, but thats okay)
-                System.arraycopy(this.ip_addr, 0, buffer, offset, this.ip_addr.length);
-                offset += 4;
-            }
-            break;
-
-            // Serializing a WiFi data message
-            case MSG_TYPE_WIFI_DATA: {
-                System.arraycopy(this.wifi_ssid, 0, buffer, offset, this.wifi_ssid.length);
-                offset += this.wifi_ssid.length;
-                System.arraycopy(this.wifi_pswd, 0, buffer, offset, this.wifi_pswd.length);
-                offset += this.wifi_pswd.length;
-            }
-            break;
-
-            // Serializing a Stream data message
-            case MSG_TYPE_STREAM_DATA: {
-
-                // Address and port will be sent as big endian but this is okay
-                System.arraycopy(this.stream_addr, 0, buffer, offset, this.stream_addr.length);
-                offset += this.stream_addr.length;
-                System.arraycopy(this.stream_port, 0, buffer, offset, this.stream_port.length);
-                offset += this.stream_port.length;
-                System.arraycopy(this.stream_path, 0, buffer, offset, this.stream_path.length);
-                offset += this.stream_path.length;
-            }
-            break;
-
-            // Serializing a Telemetry data message
-            case MSG_TYPE_TELEMETRY_DATA: {
-
-                // Address and port will be sent as big endian but this is okay
-                System.arraycopy(this.telemetry_addr, 0, buffer, offset, this.telemetry_addr.length);
-                offset += this.telemetry_addr.length;
-                System.arraycopy(this.telemetry_port, 0, buffer, offset, this.telemetry_port.length);
-                offset += this.telemetry_port.length;
             }
             break;
 
@@ -469,38 +349,6 @@ public class Msg {
     // Returns the internal status byte
     public byte get_status () {
         return this.status;
-    }
-
-    public byte[] get_ip_addr () {
-        return this.ip_addr;
-    }
-
-    public byte[] get_wifi_ssid () {
-        return this.wifi_ssid;
-    }
-
-    public byte[] get_wifi_pswd () {
-        return this.wifi_pswd;
-    }
-
-    public byte[] get_stream_addr () {
-        return this.stream_addr;
-    }
-
-    public byte[] get_stream_port () {
-        return this.stream_port;
-    }
-
-    public byte[] get_stream_path () {
-        return this.stream_path;
-    }
-
-    public byte[] get_telemetry_addr () {
-        return this.telemetry_addr;
-    }
-
-    public byte[] get_telemetry_port () {
-        return this.telemetry_port;
     }
 
     public byte get_device_instruction () {
