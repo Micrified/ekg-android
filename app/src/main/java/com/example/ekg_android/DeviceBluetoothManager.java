@@ -68,7 +68,7 @@ public class DeviceBluetoothManager {
     private int scan_results_checked = 0;
 
     // The maximum number of scan results to check before abandoning search
-    private static int max_scan_results_to_check = 50;
+    private static int max_scan_results_to_check = 100;
 
 
     /*
@@ -137,6 +137,8 @@ public class DeviceBluetoothManager {
                 String result_name = result.getDevice().getName();
                 String device_name = DeviceBluetoothManager.this.device_name;
 
+                System.out.printf("Found: %s Compare: %s\n", result_name, device_name);
+
                 // If we are out of scan results to check, stop and conclude
                 if (scan_results_checked == max_scan_results_to_check) {
                     scan_results_checked = 0;
@@ -201,8 +203,15 @@ public class DeviceBluetoothManager {
 
         @Override
         public void onServicesDiscovered (BluetoothGatt gatt, int status) {
-            super.onServicesDiscovered(gatt, status);
+            //super.onServicesDiscovered(gatt, status);
             boolean didConnect = (status == BluetoothGatt.GATT_SUCCESS);
+
+            // Try this arbitrary sleep thing
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
 
             if (didConnect == false) {
                 DeviceBluetoothManager.this.onBluetoothDisconnect();
@@ -222,20 +231,25 @@ public class DeviceBluetoothManager {
                 // Set the write-type for the characteristic
                 characteristic.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT);
 
-                // Log descriptors (if any)
+                // For all descriptors, subscribe
                 if (characteristic.getDescriptors().size() > 0) {
                     for (BluetoothGattDescriptor d : characteristic.getDescriptors()) {
                         Log.i("BLE", "BluetoothGattDescriptor: " + d.getUuid().toString());
                     }
                 } else {
                     Log.e("BLE", "No BluetoothGattDescriptors");
+                    return;
                 }
 
                 // Now setup the descriptor to enable notifications (aperiodic feedback from device)
                 BluetoothGattDescriptor descriptor =
                         characteristic.getDescriptor(uuid_device_characteristic_descriptor);
+                Log.i("BLE", "Getting descriptor: " + descriptor.getUuid().toString());
                 descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
-                gatt.writeDescriptor(descriptor);
+                if (gatt.writeDescriptor(descriptor) == false) {
+                    Log.e("BLE", "Error writing descriptor setting!");
+                    return;
+                }
 
                 // Inform delegate (on disconnect will also inform delegate)
                 if (DeviceBluetoothManager.this.delegate != null) {
@@ -247,7 +261,7 @@ public class DeviceBluetoothManager {
         @Override
         public void onCharacteristicChanged (BluetoothGatt gatt, BluetoothGattCharacteristic
                                              characteristic) {
-            super.onCharacteristicChanged(gatt, characteristic);
+            //super.onCharacteristicChanged(gatt, characteristic);
 
             // Extract response data
             byte[] characteristic_value_data = characteristic.getValue();
@@ -352,8 +366,11 @@ public class DeviceBluetoothManager {
         if (this.bluetoothDevice == null) {
             throw new DeviceBluetoothException("No device instance to connect to");
         }
-        DeviceBluetoothManager.this.gatt = this.bluetoothDevice.connectGatt(c, true,
-                DeviceBluetoothManager.this.gattCallback);
+
+        if (DeviceBluetoothManager.this.gatt == null) {
+            DeviceBluetoothManager.this.gatt = this.bluetoothDevice.connectGatt(c, true,
+                    DeviceBluetoothManager.this.gattCallback);
+        }
     }
 
     /* @brief: Disconnects from the Bluetooth LE device

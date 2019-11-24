@@ -8,6 +8,7 @@ import androidx.fragment.app.Fragment;
 
 import android.bluetooth.BluetoothClass;
 import android.bluetooth.BluetoothManager;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.view.MenuItem;
@@ -28,6 +29,17 @@ public class MainActivity extends AppCompatActivity implements DeviceBluetoothIn
     private boolean isDeviceLocated = false;
     private boolean isConnected = false;
 
+    // Connection state textview
+    private TextView textView_connection_state;
+
+
+    /*
+     *******************************************************************************
+     *                               UI Interactions                               *
+     *******************************************************************************
+    */
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -44,6 +56,9 @@ public class MainActivity extends AppCompatActivity implements DeviceBluetoothIn
 
         bottom_navigation.setSelectedItemId(R.id.nav_monitor);
         getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, new MonitorFragment()).commit();
+
+        // Add the connection state textview
+        this.textView_connection_state = findViewById(R.id.textview_connection_state);
 
     }
 
@@ -95,6 +110,33 @@ public class MainActivity extends AppCompatActivity implements DeviceBluetoothIn
         }
     }
 
+
+    /*
+     *******************************************************************************
+     *                                  Messages                                   *
+     *******************************************************************************
+    */
+
+    // Sends an instruction
+    private void send_instruction (MsgInstructionType instructionType) {
+        Msg message = new Msg().configureAsInstructionDataMessage(instructionType);
+        try {
+            Msg.MsgData data = message.getSerialized();
+            if (isConnected) {
+                bluetoothManager.enqueueMessageBuffer(data.data);
+            }
+        } catch (MessageSerializationException exception) {
+            exception.printStackTrace();
+        }
+    }
+
+    /*
+     *******************************************************************************
+     *                                BLE Callbacks                                *
+     *******************************************************************************
+    */
+
+
     @Override
     public void onDeviceLocated(boolean didSucceed) {
 
@@ -117,15 +159,40 @@ public class MainActivity extends AppCompatActivity implements DeviceBluetoothIn
 
     @Override
     public void onBluetoothConnect(boolean didSucceed) {
-
+        int connected = ContextCompat.getColor(getApplicationContext(), R.color.colorGreen);
+        int disconnected = ContextCompat.getColor(getApplicationContext(), R.color.colorWhite);
+        String text;
+        int    color;
         // Simply display a notification if thing succeed or not
         if (didSucceed) {
             this.isConnected = this.isDeviceLocated = true;
             displaySuccessSnackbar("Connected");
+            text = "Connected";
+            color = connected;
+
         } else {
             this.isConnected = this.isDeviceLocated = false;
+            text = "Disconnected";
+            color = disconnected;
             displayFailureSnackbar("Unable to connect to device!");
         }
+
+        // Update some UI elements
+        if (didSucceed) {
+            runOnUiThread(new StatusUIThread(color, text) {
+                @Override
+                public void run () {
+
+                    // Update the UI
+                    MainActivity.this.textView_connection_state.setText(this.text);
+                    MainActivity.this.textView_connection_state.setTextColor(this.color);
+
+                    // Try to turn on relaying
+                    send_instruction(MsgInstructionType.INST_EKG_START);
+                }
+            });
+        }
+
     }
 
     @Override
@@ -151,6 +218,14 @@ public class MainActivity extends AppCompatActivity implements DeviceBluetoothIn
             displayFailureSnackbar("Changes did not send successfully!");
         }
     }
+
+
+    /*
+     *******************************************************************************
+     *                                    Misc                                     *
+     *******************************************************************************
+    */
+
 
     // Display a temporary message acknowledging an action
     public void displayActionSnackbar (String msg) {
