@@ -61,14 +61,10 @@ public class Msg {
     private byte[] train_amplitude_v;
     private byte[] train_period_v;
 
-    // Sample label
+    // Sample Message
     private Classification sample_label;
-
-    // Sample Amplitude
-    private byte[] sample_amplitude;
-
-    // Sample Period
-    private byte[] sample_period;
+    private int sample_amplitude;
+    private int sample_period;
 
     // Instruction byte for dispatching to device
     private byte device_instruction;
@@ -133,9 +129,6 @@ public class Msg {
         this.train_amplitude_v = new byte[10 * 2];
         this.train_period_v    = new byte[10 * 2];
 
-        // Sample message
-        this.sample_amplitude = new byte[2];
-        this.sample_period = new byte[2];
 
         // Instruction
         this.device_instruction = getInstructionByteValue(MsgInstructionType.INST_EKG_STOP);
@@ -249,12 +242,15 @@ public class Msg {
                 // Unpack label (0x0 = N, 0x1 = A, 0x2 = V)
                 switch ((byte)(buffer[offset])) {
                     case (byte)(0x0):
-                        this.sample_label = Classification.NORMAL;
+                        this.sample_label = Classification.NONE;
                         break;
                     case (byte)(0x1):
-                        this.sample_label = Classification.ATRIAL;
+                        this.sample_label = Classification.NORMAL;
                         break;
                     case (byte)(0x2):
+                        this.sample_label = Classification.ATRIAL;
+                        break;
+                    case (byte)(0x3):
                         this.sample_label = Classification.VENTRICAL;
                         break;
                     default:
@@ -266,13 +262,15 @@ public class Msg {
                 // Increment offset
                 offset++;
 
-                // Unpack the integer as a short 16b
-                byte[] cfg_val_bytes = new byte[]{buffer[offset], buffer[offset + 1]};
-                this.cfg_val = ByteBuffer.wrap(cfg_val_bytes).getShort();
-
-                // Update offset
+                // Unpack amplitude
+                byte[] sample_amplitude_buffer = new byte[]{0x0, 0x0, buffer[offset + 1], buffer[offset]};
+                this.sample_amplitude = ByteBuffer.wrap(sample_amplitude_buffer).getInt();
                 offset += 2;
 
+                // Unpack period
+                byte[] sample_period_buffer = new byte[]{0x0, 0x0, buffer[offset + 1], buffer[offset]};
+                this.sample_period = ByteBuffer.wrap(sample_period_buffer).getInt();
+                offset += 2;
 
             }
             break;
@@ -353,6 +351,19 @@ public class Msg {
 
     public byte get_device_instruction () {
         return this.device_instruction;
+    }
+
+
+    public Classification get_sample_label () {
+        return sample_label;
+    }
+
+    public int get_sample_amplitude () {
+        return sample_amplitude;
+    }
+
+    public int get_sample_period () {
+        return sample_period;
     }
 
     // Returns message type. If MSG_TYPE_MAX then it was unable to successfully parse

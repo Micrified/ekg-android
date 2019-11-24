@@ -44,16 +44,9 @@ public class TrainFragment extends Fragment implements View.OnClickListener, Lab
         textView.setTextColor(color);
     }
 
-
-    // Handles an action to clear all training data
-    private void onClearTrainingData () {
-        DataManager.getInstance().clear();
-        refresh();
-    }
-
     // Handles the arrival of a sample
     private void onNewSample (int amplitude, int period) {
-        this.pendingSample = new Sample(amplitude, period);
+        this.pendingSample = new Sample(Classification.NONE, amplitude, period);
         LabelDialog labelDialog = new LabelDialog(this.pendingSample, this);
         labelDialog.show(getFragmentManager(), "Classify");
     }
@@ -68,7 +61,7 @@ public class TrainFragment extends Fragment implements View.OnClickListener, Lab
                 break;
             case R.id.button_clear:
                 System.out.println("Clearing");
-                m.clear();
+                m.clearTrainingData();
                 this.pendingSample = null;
                 break;
             case R.id.button_sample:

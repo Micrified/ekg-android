@@ -1,13 +1,19 @@
 package com.example.ekg_android;
 
 import java.util.ArrayList;
-
+import java.util.concurrent.SynchronousQueue;
 
 
 public class DataManager {
 
     // Internal reference to singleton class instance
     private static volatile DataManager singleton = new DataManager();
+
+    // Synchronized event queue (for incoming events)
+    private ArrayList samples;
+
+    // Array of subscribers to events
+    ArrayList<DataManagerInterface> subscribers;
 
     // Training data constants
     public static final int max_count_a = 10;
@@ -30,11 +36,24 @@ public class DataManager {
         return this.training_data_v.size();
     }
 
-    // Clear Method
-    public void clear () {
+    // Clear Method for the training data
+    public void clearTrainingData () {
         this.training_data_a.clear();
         this.training_data_n.clear();
         this.training_data_v.clear();
+    }
+
+    // Allows samples to be added to the synchronous queue
+    public void addSample (Sample s) {
+        this.samples.add(s);
+        for (DataManagerInterface subscriber : subscribers) {
+            subscriber.onNewSample(s);
+        }
+    }
+
+    // Allows a subscriber to be added
+    public void addSubscriber (DataManagerInterface subscriber) {
+        this.subscribers.add(subscriber);
     }
 
     // Insertion methods
@@ -49,7 +68,10 @@ public class DataManager {
     }
 
     // Private Constructor
-    private DataManager(){}
+    private DataManager(){
+        this.subscribers = new ArrayList<DataManagerInterface>();
+        this.samples = new ArrayList<Sample>();
+    }
 
     public static DataManager getInstance() {
         return singleton;

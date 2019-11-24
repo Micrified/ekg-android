@@ -76,7 +76,7 @@
             android:layout_width="75dp"
             android:layout_height="wrap_content"
             android:textStyle="bold"
-            android:text="Type N"
+            android:text="Normal"
             android:textColor="@color/foregroundColor"
             android:textAlignment="center"
             android:layout_alignParentLeft="true"
@@ -86,7 +86,7 @@
             android:layout_width="75dp"
             android:layout_height="wrap_content"
             android:textStyle="bold"
-            android:text="Type A"
+            android:text="Atrial"
             android:textColor="@color/foregroundColor"
             android:textAlignment="center"
             android:layout_centerInParent="true"
@@ -96,19 +96,13 @@
             android:layout_width="75dp"
             android:layout_height="wrap_content"
             android:textStyle="bold"
-            android:text="Type V"
+            android:text="Ventri"
             android:textColor="@color/foregroundColor"
             android:textAlignment="center"
             android:layout_alignParentRight="true"
             android:textSize="20sp"/>
     </RelativeLayout>
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Label incoming samples to train categories\nN: Normal\nA: Atrial premature beat\nV: Premature ventricular contraction"
-        android:textStyle="italic"
-        android:textColor="@color/inactiveTabColor"
-        android:textAlignment="center"/>
+
 
     <RelativeLayout
         android:layout_width="wrap_content"
@@ -136,12 +130,13 @@
 
     </RelativeLayout>
 
-    <Button
-        android:id="@+id/button_sample"
+    <ListView
+        android:id="@+id/listview_samples"
+        android:layout_marginTop="10dp"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_margin="40dp"
-        android:text="Get Sample"/>
+        android:layout_height="fill_parent"
+        />
+
 
 
 </LinearLayout>

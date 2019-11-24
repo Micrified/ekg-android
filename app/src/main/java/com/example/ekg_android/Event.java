@@ -9,7 +9,6 @@ import java.sql.Timestamp;
 public class Event {
     private Sample sample;
     private Timestamp timestamp;
-    private Classification classification;
 
     public Sample getSample() {
         return sample;
@@ -19,14 +18,10 @@ public class Event {
         return timestamp;
     }
 
-    public Classification getClassification() {
-        return classification;
-    }
 
-    public Event (Sample sample, Classification classification) {
+    public Event (Sample sample) {
         this.sample = sample;
         java.util.Date date = new java.util.Date();
         this.timestamp = new Timestamp(date.getTime());
-        this.classification = classification;
     }
 }

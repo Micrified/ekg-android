@@ -19,7 +19,7 @@ import java.util.concurrent.Semaphore;
 
 public class DeviceBluetoothManager {
 
-    // UUID of the single device service in the broadcasted profile
+    // UUID of the single device service in the broadcast profile
     private UUID uuid_device_service = intToUUID(0x00FF);
 
     // UUID of the multipurpose characteristic of the device service
@@ -203,15 +203,8 @@ public class DeviceBluetoothManager {
 
         @Override
         public void onServicesDiscovered (BluetoothGatt gatt, int status) {
-            //super.onServicesDiscovered(gatt, status);
+            super.onServicesDiscovered(gatt, status);
             boolean didConnect = (status == BluetoothGatt.GATT_SUCCESS);
-
-            // Try this arbitrary sleep thing
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
 
             if (didConnect == false) {
                 DeviceBluetoothManager.this.onBluetoothDisconnect();
@@ -253,6 +246,12 @@ public class DeviceBluetoothManager {
 
                 // Inform delegate (on disconnect will also inform delegate)
                 if (DeviceBluetoothManager.this.delegate != null) {
+                    // Try this arbitrary sleep thing
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                     DeviceBluetoothManager.this.delegate.onBluetoothConnect(didConnect);
                 }
             }
@@ -261,8 +260,8 @@ public class DeviceBluetoothManager {
         @Override
         public void onCharacteristicChanged (BluetoothGatt gatt, BluetoothGattCharacteristic
                                              characteristic) {
-            //super.onCharacteristicChanged(gatt, characteristic);
-
+            super.onCharacteristicChanged(gatt, characteristic);
+            Log.e("BLE", "onCharacteristicChanged");
             // Extract response data
             byte[] characteristic_value_data = characteristic.getValue();
 
@@ -430,6 +429,11 @@ public class DeviceBluetoothManager {
 
         // Set the write semaphore
         writeSemaphore = new Semaphore(1, true);
+
+        // Debug: Print UUIDs
+        System.out.println("uuid_device_service = " + uuid_device_service.toString());
+        System.out.println("uuid_device_characteristic = " + uuid_device_characteristic.toString());
+        System.out.println("uuid_device_characteristic_descriptor = " + uuid_device_characteristic_descriptor.toString());
 
         Log.i("BLE", "Initialized ");
     }

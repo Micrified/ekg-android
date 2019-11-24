@@ -11,6 +11,7 @@ import android.bluetooth.BluetoothManager;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.PersistableBundle;
+import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
@@ -196,11 +197,25 @@ public class MainActivity extends AppCompatActivity implements DeviceBluetoothIn
     }
 
     @Override
-    public void onCharacteristicChanged(byte[] value) {
+    public void onCharacteristicChanged(final byte[] value) {
         System.out.println("Data received (" + value.length + " bytes)");
 
         // Parse message
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Msg msg = new Msg().fromByteBuffer(value);
+                    if (msg.getMessageType() == MsgType.MSG_TYPE_SAMPLE_DATA) {
+                        System.out.printf("Sample: Label = %s\tAmplitude = %d\tRR-Period = %d\n", msg.get_sample_label().toString(), msg.get_sample_amplitude(), msg.get_sample_period());
+                        DataManager.getInstance().addSample(new Sample(msg.get_sample_label(), msg.get_sample_amplitude(), msg.get_sample_period()));
+                    }
+                } catch (MessageSerializationException exception) {
+                    Log.e("BLE", "Malformed message received!");
+                }
 
+            }
+        });
         // If sample and training not finished -> then push to sample queue
         // If training not finished, it should be in sampling mode
 

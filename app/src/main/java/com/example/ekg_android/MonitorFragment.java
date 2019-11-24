@@ -12,11 +12,12 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
 
-public class MonitorFragment extends Fragment {
+public class MonitorFragment extends Fragment implements DataManagerInterface {
 
     // Listview
     private ListView listview_events;
@@ -53,27 +54,18 @@ public class MonitorFragment extends Fragment {
 
             // Configure the timestamp textview
             TextView textview_timestamp = (TextView)view.findViewById(R.id.textview_timestamp);
-            textview_timestamp.setText(event.getTimestamp().toString());
+            SimpleDateFormat format = new SimpleDateFormat("EEE, MMM d, 'at' HH:mm:ss");
+            String timeString = format.format(event.getTimestamp());
+            textview_timestamp.setText(timeString);
 
             // Configure the label textview
             TextView textview_label = (TextView)view.findViewById(R.id.textview_label);
-            textview_label.setText(event.getClassification().toString());
+            textview_label.setText(event.getSample().getLabel().toString());
 
             return view;
         }
     };
 
-
-    // Inserts a new item into the arraylist
-    public void onEvent (Sample sample, Classification classification) {
-
-        // Create a new arraylist with latest event at the front
-        ArrayList<Event> newEvents = new ArrayList<Event>();
-        newEvents.add(new Event(sample, classification));
-        newEvents.addAll(this.events);
-        this.events = newEvents;
-        this.listview_events.refreshDrawableState();
-    }
 
     @Nullable
     @Override
@@ -89,9 +81,28 @@ public class MonitorFragment extends Fragment {
         // Connect the list view
         this.listview_events.setAdapter(this.adapter);
 
-        // Refresh UI
-        // refresh();
+        // Subscribe to DataManager
+        DataManager.getInstance().addSubscriber(this);
 
         return root;
+    }
+
+    @Override
+    public void onNewSample(Sample sample) {
+
+        // Ignore sample unless it is critical
+        if (sample.getLabel() != Classification.ATRIAL &&
+                sample.getLabel() != Classification.VENTRICAL) {
+            return;
+        }
+
+        // Create a new arraylist with latest event at the front
+        ArrayList<Event> newEvents = new ArrayList<Event>();
+        newEvents.add(new Event(sample));
+        newEvents.addAll(this.events);
+        this.events = newEvents;
+
+        // Refresh the listview
+        this.adapter.notifyDataSetChanged();
     }
 }
