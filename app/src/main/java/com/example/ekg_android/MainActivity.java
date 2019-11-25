@@ -1,26 +1,22 @@
 package com.example.ekg_android;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
-import android.bluetooth.BluetoothClass;
-import android.bluetooth.BluetoothManager;
-import android.graphics.Color;
 import android.os.Bundle;
-import android.os.PersistableBundle;
+import android.os.Message;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.TextView;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.snackbar.Snackbar;
 
-public class MainActivity extends AppCompatActivity implements DeviceBluetoothInterface {
+public class MainActivity extends AppCompatActivity implements DeviceBluetoothInterface, View.OnClickListener, SettingDialog.SettingDialogListener {
 
 
     // Bluetooth Manager
@@ -32,6 +28,9 @@ public class MainActivity extends AppCompatActivity implements DeviceBluetoothIn
 
     // Connection state textview
     private TextView textView_connection_state;
+
+    // Settings/Configuration button
+    private Button button_settings;
 
 
     /*
@@ -60,6 +59,14 @@ public class MainActivity extends AppCompatActivity implements DeviceBluetoothIn
 
         // Add the connection state textview
         this.textView_connection_state = findViewById(R.id.textview_connection_state);
+
+        // Add the settings button (not enabled until connected)
+        this.button_settings = findViewById(R.id.button_settings);
+        this.button_settings.setEnabled(false);
+
+        // Set the settings button icon and callback
+        this.button_settings.setBackgroundResource(R.drawable.ic_settings_applications_black_24dp);
+        this.button_settings.setOnClickListener(this);
 
     }
 
@@ -159,11 +166,12 @@ public class MainActivity extends AppCompatActivity implements DeviceBluetoothIn
     }
 
     @Override
-    public void onBluetoothConnect(boolean didSucceed) {
+    public void onBluetoothConnect(final boolean didSucceed) {
         int connected = ContextCompat.getColor(getApplicationContext(), R.color.colorGreen);
         int disconnected = ContextCompat.getColor(getApplicationContext(), R.color.colorWhite);
         String text;
         int    color;
+
         // Simply display a notification if thing succeed or not
         if (didSucceed) {
             this.isConnected = this.isDeviceLocated = true;
@@ -178,21 +186,22 @@ public class MainActivity extends AppCompatActivity implements DeviceBluetoothIn
             displayFailureSnackbar("Unable to connect to device!");
         }
 
-        // Update some UI elements
-        if (didSucceed) {
-            runOnUiThread(new StatusUIThread(color, text) {
-                @Override
-                public void run () {
+        // Update UI elements
+        runOnUiThread(new StatusUIThread(color, text) {
+            @Override
+            public void run () {
 
-                    // Update the UI
-                    MainActivity.this.textView_connection_state.setText(this.text);
-                    MainActivity.this.textView_connection_state.setTextColor(this.color);
+                // Update the UI
+                MainActivity.this.textView_connection_state.setText(this.text);
+                MainActivity.this.textView_connection_state.setTextColor(this.color);
+                MainActivity.this.button_settings.setEnabled(didSucceed);
 
+                if (didSucceed) {
                     // Try to turn on relaying
                     send_instruction(MsgInstructionType.INST_EKG_START);
                 }
-            });
-        }
+            }
+        });
 
     }
 
@@ -270,5 +279,59 @@ public class MainActivity extends AppCompatActivity implements DeviceBluetoothIn
         TextView fg = bg.findViewById(R.id.snackbar_text);
         fg.setTextColor(ContextCompat.getColor(getApplicationContext(), R.color.colorWhite));
         s.show();
+    }
+
+    @Override
+    public void onClick(View view) {
+        DataManager m = DataManager.getInstance();
+        switch (view.getId()) {
+            case R.id.button_settings: {
+                Comparator comparator = m.getSettingComparator();
+                int threshold = m.getSettingThreshold();
+                SettingDialog labelDialog = new SettingDialog(comparator, threshold, this);
+                labelDialog.show(getSupportFragmentManager(), "Settings");
+            }
+            break;
+        }
+    }
+
+    @Override
+    public void onSettingsChanged(Comparator comparator, int threshold) {
+
+        System.out.printf("Settings Updated (comp = %s, threshold = %d)\n", comparator.toString(), threshold);
+
+        // Update the configuration settings
+        DataManager.getInstance().setSettings(comparator, threshold);
+
+        // Transmit changes to the device (if connected - although only accessible if connected)
+        System.out.println("Transmitting changes to device ...");
+
+        if (this.isConnected) {
+
+            // Create a new message and set it as a Configuration message
+            Msg msg = new Msg();
+            msg.configureAsConfigurationMessage(comparator, threshold);
+
+            // Try to serialize and send it
+            try {
+                Msg.MsgData data = msg.getSerialized();
+                bluetoothManager.enqueueMessageBuffer(data.data);
+            } catch (MessageSerializationException exception) {
+                exception.printStackTrace();
+            }
+
+            // Create a new message and set it as an Instruction message
+            msg = new Msg();
+            msg.configureAsInstructionDataMessage(MsgInstructionType.INST_EKG_CONFIGURE);
+
+            // Try to serialize and send it
+            try {
+                Msg.MsgData data = msg.getSerialized();
+                bluetoothManager.enqueueMessageBuffer(data.data);
+            } catch (MessageSerializationException exception) {
+                exception.printStackTrace();
+            }
+        }
+
     }
 }

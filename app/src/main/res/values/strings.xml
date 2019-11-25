@@ -1,9 +1,7 @@
 <resources>
     <string name="app_name">EKG-Android</string>
-    <string-array name="labels">
-        <item> None (Discard) </item>
-        <item>N (Normal) </item>
-        <item>A (Atrial) </item>
-        <item>V (Ventricular) </item>
+    <string-array name="comparators">
+        <item>Is-Greater-Than </item>
+        <item>Is-Less-Than </item>
     </string-array>
 </resources>

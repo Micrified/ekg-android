@@ -6,7 +6,9 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.BaseAdapter;
 import android.widget.Button;
+import android.widget.ListView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -14,19 +16,84 @@ import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 
-public class TrainFragment extends Fragment implements View.OnClickListener, LabelDialog.LabelDialogListener {
+public class TrainFragment extends Fragment implements View.OnClickListener, DataManagerInterface {
 
     // Textviews
     private TextView textview_n_count;
     private TextView textview_a_count;
     private TextView textview_v_count;
+    private TextView textview_sample_count;
 
     // Buttons
     private Button button_upload;
     private Button button_clear;
-    private Button button_sample;
+
+    // Listview
+    private ListView listview_samples;
+
+    // Listview Adapter
+    private BaseAdapter listviewAdapter = new BaseAdapter() {
+
+        // We only show one cell at a time, so MIN(1, count)
+        @Override
+        public int getCount() {
+            return Math.min(1, DataManager.getInstance().getSampleCount());
+        }
+
+        // Always display the latest item
+        @Override
+        public Object getItem(int i) {
+            return DataManager.getInstance().peekSample();
+        }
+
+        // We just return the index as the item identifier
+        @Override
+        public long getItemId(int i) {
+            return i;
+        }
+
+        // Here we configure the view
+        @Override
+        public View getView(int i, View view, ViewGroup viewGroup) {
+            if (view == null) {
+                view = getLayoutInflater().inflate(R.layout.train_cell, viewGroup, false);
+            }
+
+            // Extract sample
+            Sample sample = DataManager.getInstance().peekSample();
+
+            // If no sample, return null
+            if (sample == null) {
+                return null;
+            }
+
+            // Assign the Amplitude and R-R Period for the sample cell
+            TextView textview_sample_amplitude = (TextView)view.findViewById(R.id.textview_sample_amplitude);
+            TextView textview_sample_period    = (TextView)view.findViewById(R.id.textview_sample_period);
+
+            // Assign the buttons
+            Button button_label_normal    = (Button)view.findViewById(R.id.button_label_normal);
+            Button button_label_atrial    = (Button)view.findViewById(R.id.button_label_atrial);
+            Button button_label_ventrical = (Button)view.findViewById(R.id.button_label_ventrical);
+            Button button_label_discard   = (Button)view.findViewById(R.id.button_discard);
+
+            // Configure the textviews
+            float amplitude = ((float)sample.getAmplitude() / 1000);
+            textview_sample_amplitude.setText(String.format("%3fV", amplitude));
+            textview_sample_period.setText(String.format("%dms", sample.getPeriod()));
+
+            // Set the button listeners
+            button_label_normal.setOnClickListener(TrainFragment.this);
+            button_label_atrial.setOnClickListener(TrainFragment.this);
+            button_label_ventrical.setOnClickListener(TrainFragment.this);
+            button_label_discard.setOnClickListener(TrainFragment.this);
+
+            return view;
+        }
+    };
 
 
     // Metadata
@@ -44,13 +111,6 @@ public class TrainFragment extends Fragment implements View.OnClickListener, Lab
         textView.setTextColor(color);
     }
 
-    // Handles the arrival of a sample
-    private void onNewSample (int amplitude, int period) {
-        this.pendingSample = new Sample(Classification.NONE, amplitude, period);
-        LabelDialog labelDialog = new LabelDialog(this.pendingSample, this);
-        labelDialog.show(getFragmentManager(), "Classify");
-    }
-
 
     @Override
     public void onClick(View view) {
@@ -64,10 +124,23 @@ public class TrainFragment extends Fragment implements View.OnClickListener, Lab
                 m.clearTrainingData();
                 this.pendingSample = null;
                 break;
-            case R.id.button_sample:
-                System.out.println("Sampling");
-                this.onNewSample(30,25);
-                break;
+
+            case R.id.button_label_normal: {
+                onSampleLabel(Classification.NORMAL);
+            }
+            break;
+            case R.id.button_label_atrial: {
+                onSampleLabel(Classification.ATRIAL);
+            }
+            break;
+            case R.id.button_label_ventrical: {
+                onSampleLabel(Classification.VENTRICAL);
+            }
+            break;
+            case R.id.button_discard: {
+                onSampleLabel(Classification.NONE);
+            }
+            break;
         }
         refresh();
     }
@@ -88,13 +161,16 @@ public class TrainFragment extends Fragment implements View.OnClickListener, Lab
         if (ready) {
             button_clear.setEnabled(true);
             button_upload.setEnabled(true);
-            button_sample.setEnabled(false);
         } else {
             button_clear.setEnabled(true);
             button_upload.setEnabled(false);
-            button_sample.setEnabled(true);
         }
 
+        // Order the listview to refresh
+        this.listviewAdapter.notifyDataSetChanged();
+
+        // Update the sample count textview
+        this.textview_sample_count.setText(String.format("%2d Samples Available", m.getSampleCount()));
     }
 
     @Nullable
@@ -106,15 +182,21 @@ public class TrainFragment extends Fragment implements View.OnClickListener, Lab
         this.textview_a_count = root.findViewById(R.id.textview_a);
         this.textview_n_count = root.findViewById(R.id.textview_n);
         this.textview_v_count = root.findViewById(R.id.textview_v);
+        this.textview_sample_count = root.findViewById(R.id.textview_sample_count);
 
         this.button_upload = root.findViewById(R.id.button_upload);
         this.button_clear = root.findViewById(R.id.button_clear);
-        this.button_sample = root.findViewById(R.id.button_sample);
+
+        // Setup the listview and assign it the adapter
+        this.listview_samples = root.findViewById(R.id.listview_samples);
+        this.listview_samples.setAdapter(this.listviewAdapter);
+
+        // Subscribe to the DataManager
+        DataManager.getInstance().addSubscriber(this);
 
         // Set listeners
         this.button_upload.setOnClickListener(this);
         this.button_clear.setOnClickListener(this);
-        this.button_sample.setOnClickListener(this);
 
         // Refresh UI
         refresh();
@@ -123,9 +205,12 @@ public class TrainFragment extends Fragment implements View.OnClickListener, Lab
     }
 
 
-    @Override
-    public void onSampleLabel(Sample sample, Classification classification) {
+    public void onSampleLabel(Classification classification) {
         DataManager m = DataManager.getInstance();
+
+        // Remove the sample from the queue
+        Sample sample = DataManager.getInstance().removeSample();
+
         switch (classification) {
             case NONE:
                 System.out.println("Discarding sample ...");
@@ -149,7 +234,6 @@ public class TrainFragment extends Fragment implements View.OnClickListener, Lab
                 m.addSample_V(sample);
                 break;
         }
-        refresh();
     }
 
     private void showAlert (String msg) {
@@ -163,5 +247,16 @@ public class TrainFragment extends Fragment implements View.OnClickListener, Lab
                     }
                 });
         alertDialog.show();
+    }
+
+    @Override
+    public void onNewSample(Sample sample) {
+
+        // We just update the listview data when new samples become available
+        this.listviewAdapter.notifyDataSetChanged();
+
+        // Update the sample count textview
+        this.textview_sample_count.setText(String.format("%2d Samples Available",
+                DataManager.getInstance().getSampleCount()));
     }
 }

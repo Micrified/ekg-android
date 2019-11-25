@@ -11,19 +11,17 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="R-R Interval:"
+            android:text="Type:"
             android:textStyle="bold"
             android:textSize="20sp"
             android:layout_margin="10dp"
             android:textAlignment="center"
             />
 
-        <TextView
-            android:id="@+id/textview_interval"
+        <Spinner
+            android:id="@+id/spinner_comparator"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="00.00 ms"
-            android:layout_margin="10dp"/>
+            android:layout_height="match_parent" />
     </LinearLayout>
 
     <LinearLayout
@@ -38,36 +36,21 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_margin="10dp"
-            android:text="R Peak Amplitude:"
+            android:text="Value:"
             android:textAlignment="center"
             android:textSize="20sp"
             android:textStyle="bold" />
 
-        <TextView
-            android:id="@+id/textview_amplitude"
-            android:layout_width="wrap_content"
+
+        <EditText
+            android:id="@+id/edittext_threshold"
+            android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:layout_margin="10dp"
-            android:text="00.00 V" />
+            android:layout_gravity="bottom"
+            android:inputType="number"
+            android:text="1450"/>
+
     </LinearLayout>
-
-    <TextView
-        android:padding="10dp"
-        android:textSize="18dp"
-        android:textStyle="bold"
-        android:text="Classification"
-        android:layout_below="@id/amplitude_frame"
-        android:id="@+id/textview_spinner"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_centerInParent="true"/>
-
-    <Spinner
-        android:id="@+id/spinner_label"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/textview_spinner"
-        android:layout_centerInParent="true"/>
 
 
 </RelativeLayout>

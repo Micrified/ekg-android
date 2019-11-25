@@ -69,7 +69,7 @@
     <RelativeLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_margin="15dp"
+        android:layout_margin="10dp"
         android:layout_gravity="bottom" >
 
         <TextView
@@ -107,7 +107,7 @@
     <RelativeLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
+        android:layout_marginTop="5dp"
         android:layout_marginLeft="30dp"
         android:layout_marginRight="30dp"
         android:layout_gravity="bottom" >
@@ -129,6 +129,17 @@
             android:text="Clear Data" />
 
     </RelativeLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="00 Samples Available"
+        android:id="@+id/textview_sample_count"
+        android:textAlignment="center"
+        android:layout_margin="10dp"
+        android:textStyle="bold"
+        android:textColor="@color/colorWhite"
+        />
 
     <ListView
         android:id="@+id/listview_samples"

@@ -1,7 +1,7 @@
 package com.example.ekg_android;
 
 import java.util.ArrayList;
-import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ArrayBlockingQueue;
 
 
 public class DataManager {
@@ -10,7 +10,7 @@ public class DataManager {
     private static volatile DataManager singleton = new DataManager();
 
     // Synchronized event queue (for incoming events)
-    private ArrayList samples;
+    private ArrayBlockingQueue samples;
 
     // Array of subscribers to events
     ArrayList<DataManagerInterface> subscribers;
@@ -24,6 +24,10 @@ public class DataManager {
     ArrayList<Sample> training_data_a = new ArrayList<Sample>();
     ArrayList<Sample> training_data_n = new ArrayList<Sample>();
     ArrayList<Sample> training_data_v = new ArrayList<Sample>();
+
+    // Configuration settings
+    private Comparator cfg_comp = Comparator.GREATER_THAN;
+    private int cfg_val= 0x0;
 
     // Easy Access Methods
     public int getCount_A () {
@@ -43,12 +47,63 @@ public class DataManager {
         this.training_data_v.clear();
     }
 
+    // Sets the configuration
+    public void setSettings (Comparator comparator, int threshold) {
+        this.cfg_comp = comparator;
+        this.cfg_val = threshold;
+    }
+
+    // Returns the Setting comparator type
+    public Comparator getSettingComparator () {
+        return this.cfg_comp;
+    }
+
+    // Returns the Settings threshold
+    public int getSettingThreshold () {
+        return this.cfg_val;
+    }
+
+    // Returns the sample count
+    public int getSampleCount () {
+        return this.samples.size();
+    }
+
     // Allows samples to be added to the synchronous queue
     public void addSample (Sample s) {
-        this.samples.add(s);
-        for (DataManagerInterface subscriber : subscribers) {
-            subscriber.onNewSample(s);
+        try {
+            this.samples.put(s);
+            for (DataManagerInterface subscriber : subscribers) {
+                subscriber.onNewSample(s);
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
+    }
+
+    // Allows samples to be peeked at from the synchronous queue
+    public Sample peekSample () {
+        Sample s = null;
+        if (this.samples.size() > 0) {
+            s = (Sample)samples.peek();
+        }
+        return s;
+    }
+
+    // Allows samples to be dequeued from the synchronous queue
+    public Sample removeSample () {
+        Sample s = null;
+
+        if (this.samples.size() > 0) {
+            try {
+                s = (Sample)samples.take();
+
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                s = null;
+            }
+        }
+
+        return s;
     }
 
     // Allows a subscriber to be added
@@ -70,7 +125,7 @@ public class DataManager {
     // Private Constructor
     private DataManager(){
         this.subscribers = new ArrayList<DataManagerInterface>();
-        this.samples = new ArrayList<Sample>();
+        this.samples = new ArrayBlockingQueue<Sample>(100);
     }
 
     public static DataManager getInstance() {

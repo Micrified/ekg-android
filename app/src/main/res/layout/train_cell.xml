@@ -62,32 +62,30 @@
         android:orientation="horizontal">
 
         <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Normal"
             android:id="@+id/button_label_normal"
-            />
-
-        <Button
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Atrial"
+            android:text="Normal" />
+
+        <Button
             android:id="@+id/button_label_atrial"
-            />
-        <Button
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Ventrical"
-            android:id="@+id/button_label_ventrical"
-            />
+            android:text="Atrial" />
 
         <Button
+            android:id="@+id/button_label_ventrical"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Ventrical" />
+
+        <Button
+            android:id="@+id/button_discard"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:text="Discard"
-            android:textColor="@color/colorWhite"
             android:background="@color/colorAccent"
-            />
+            android:text="Discard"
+            android:textColor="@color/colorWhite" />
 
     </LinearLayout>
 

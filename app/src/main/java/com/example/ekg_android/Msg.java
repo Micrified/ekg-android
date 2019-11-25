@@ -7,6 +7,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 
 public class Msg {
 
@@ -14,7 +15,7 @@ public class Msg {
     /* ********** Message Metadata ********** */
 
     // The maximum message byte size
-    public static final int MSG_BUFFER_MAX = 128;
+    public static final int MSG_BUFFER_MAX = 256;
 
     // The message header byte
     public static final byte MSG_BYTE_HEAD = (byte)0xFF;
@@ -50,16 +51,9 @@ public class Msg {
     private byte status;
 
     // Training sets (N)
-    private byte[] train_amplitude_n;
-    private byte[] train_period_n;
-
-    // Training sets (A)
-    private byte[] train_amplitude_a;
-    private byte[] train_period_a;
-
-    // Training sets (V)
-    private byte[] train_amplitude_v;
-    private byte[] train_period_v;
+    private ArrayList<Sample> normal_training_data;
+    private ArrayList<Sample> atrial_training_data;
+    private ArrayList<Sample> ventrical_training_data;
 
     // Sample Message
     private Classification sample_label;
@@ -70,10 +64,10 @@ public class Msg {
     private byte device_instruction;
 
     // Configuration: Comparator type
-    private byte cfg_comp;
+    private Comparator cfg_comp;
 
     // Configuration: Value
-    private short cfg_val;
+    private int cfg_val;
 
 
     /* ********** Internal Properties ********** */
@@ -109,6 +103,14 @@ public class Msg {
         return (byte)0xFF;
     }
 
+    public static byte getComparatorByteValue (Comparator comparator) {
+        switch (comparator) {
+            case GREATER_THAN: return 0x0;
+            case LESS_THAN: return 0x1;
+        }
+        return 0x0;
+    }
+
 
     /* ********** Constructors ********** */
 
@@ -120,21 +122,16 @@ public class Msg {
         this.status = 0x0;
 
         // Training Message
-        this.train_amplitude_n = new byte[20 * 2];
-        this.train_period_n    = new byte[20 * 2];
-
-        this.train_amplitude_a = new byte[10 * 2];
-        this.train_period_a    = new byte[10 * 2];
-
-        this.train_amplitude_v = new byte[10 * 2];
-        this.train_period_v    = new byte[10 * 2];
+        this.normal_training_data = new ArrayList<Sample>(20);
+        this.atrial_training_data = new ArrayList<Sample>(10);
+        this.ventrical_training_data = new ArrayList<Sample>(10);
 
 
         // Instruction
         this.device_instruction = getInstructionByteValue(MsgInstructionType.INST_EKG_STOP);
 
         // Configuration
-        this.cfg_comp = 0x0;
+        this.cfg_comp = Comparator.GREATER_THAN;
         this.cfg_val = 0;
 
         // Error description
@@ -177,8 +174,13 @@ public class Msg {
     }
 
     // Configures the instance to be a configuration method
-    public Msg configureAsConfigurationMessage (Comparator comparator, short value) {
-        this.cfg_comp = (byte)(comparator == Comparator.GREATER_THAN ? 0x0 : 0x1);
+    public Msg configureAsConfigurationMessage (Comparator comparator, int value) {
+
+        // Set the message type
+        this.msgType = MsgType.MSG_TYPE_CONFIGURATION;
+
+        // Set the comparator and value
+        this.cfg_comp = comparator;
         this.cfg_val = value;
 
         return this;
@@ -322,6 +324,78 @@ public class Msg {
                 // Set the status byte
                 buffer[offset] = this.status;
                 offset++;
+
+            }
+            break;
+
+            // Serializing a configuration message
+            case MSG_TYPE_CONFIGURATION: {
+
+                // Set the comparator byte
+                buffer[offset] = (byte)(this.getComparatorByteValue(this.cfg_comp));
+                offset++;
+
+                // Set the value byte
+                buffer[offset] = (byte)((this.cfg_val >> 8) & 0xFF); // MSB first
+                offset++;
+                buffer[offset] = (byte)((this.cfg_val >> 0) & 0xFF); // LSB second
+                offset++;
+            }
+            break;
+
+
+            // Serializing a training message
+            case MSG_TYPE_TRAIN_DATA: {
+
+                // Write N periods
+                for (int i = 0; i < 20; i += 2) {
+                    int v = this.normal_training_data.get(i).getPeriod();
+                    buffer[offset + i + 0] = (byte)((v >> 0) & 0xFF);       // LSB first
+                    buffer[offset + i + 1] = (byte)((v >> 8) & 0xFF);       // MSB second
+                }
+                offset += (2 * 20);
+
+                // Write N amplitudes
+                for (int i = 0; i < 20; i += 2) {
+                    int v = this.normal_training_data.get(i).getAmplitude();
+                    buffer[offset + i + 0] = (byte)((v >> 0) & 0xFF);       // LSB first
+                    buffer[offset + i + 1] = (byte)((v >> 8) & 0xFF);       // MSB second
+                }
+                offset += (2 * 20);
+
+
+                // Write A periods
+                for (int i = 0; i < 10; i += 2) {
+                    int v = this.atrial_training_data.get(i).getPeriod();
+                    buffer[offset + i + 0] = (byte)((v >> 0) & 0xFF);       // LSB first
+                    buffer[offset + i + 1] = (byte)((v >> 8) & 0xFF);       // MSB second
+                }
+                offset += (2 * 10);
+
+                // Write A amplitudes
+                for (int i = 0; i < 10; i += 2) {
+                    int v = this.atrial_training_data.get(i).getAmplitude();
+                    buffer[offset + i + 0] = (byte)((v >> 0) & 0xFF);       // LSB first
+                    buffer[offset + i + 1] = (byte)((v >> 8) & 0xFF);       // MSB second
+                }
+                offset += (2 * 10);
+
+
+                // Write V periods
+                for (int i = 0; i < 10; i += 2) {
+                    int v = this.ventrical_training_data.get(i).getPeriod();
+                    buffer[offset + i + 0] = (byte)((v >> 0) & 0xFF);       // LSB first
+                    buffer[offset + i + 1] = (byte)((v >> 8) & 0xFF);       // MSB second
+                }
+                offset += (2 * 10);
+
+                // Write V amplitudes
+                for (int i = 0; i < 10; i += 2) {
+                    int v = this.ventrical_training_data.get(i).getAmplitude();
+                    buffer[offset + i + 0] = (byte)((v >> 0) & 0xFF);       // LSB first
+                    buffer[offset + i + 1] = (byte)((v >> 8) & 0xFF);       // MSB second
+                }
+                offset += (2 * 10);
 
             }
             break;
