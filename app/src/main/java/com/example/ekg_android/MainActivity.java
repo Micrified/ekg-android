@@ -301,7 +301,7 @@ public class MainActivity extends AppCompatActivity implements DeviceBluetoothIn
                 Comparator comparator = m.getSettingComparator();
                 int threshold = m.getSettingThreshold();
                 SettingDialog labelDialog = new SettingDialog(comparator, threshold, this);
-                labelDialog.show(getSupportFragmentManager(), "Settings");
+                labelDialog.show(getSupportFragmentManager(), "Peak Detection");
             }
             break;
         }

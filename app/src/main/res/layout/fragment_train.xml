@@ -12,7 +12,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Training Center"
-        android:textSize="32sp"
+        android:textSize="24sp"
         android:textStyle="bold"
         android:textColor="@color/foregroundColor"
         android:textAlignment="center"
@@ -21,7 +21,7 @@
     <RelativeLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_margin="15dp"
+        android:layout_margin="10dp"
         android:layout_gravity="bottom" >
 
         <TextView
@@ -108,8 +108,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="5dp"
-        android:layout_marginLeft="30dp"
-        android:layout_marginRight="30dp"
+        android:layout_marginLeft="10dp"
+        android:layout_marginRight="10dp"
         android:layout_gravity="bottom" >
 
         <Button
@@ -119,6 +119,14 @@
             android:layout_height="wrap_content"
             android:layout_alignParentLeft="true"
             android:text="Upload Data" />
+
+        <Button
+            android:id="@+id/button_preset"
+            android:padding="10dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:text="Use Preset" />
 
         <Button
             android:id="@+id/button_clear"
@@ -143,7 +151,7 @@
 
     <ListView
         android:id="@+id/listview_samples"
-        android:layout_marginTop="10dp"
+        android:layout_marginTop="5dp"
         android:layout_width="match_parent"
         android:layout_height="fill_parent"
         />

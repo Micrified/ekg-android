@@ -34,6 +34,7 @@ public class TrainFragment extends Fragment implements View.OnClickListener, Dat
     // Buttons
     private Button button_upload;
     private Button button_clear;
+    private Button button_preset;
 
     // Listview
     private ListView listview_samples;
@@ -124,6 +125,10 @@ public class TrainFragment extends Fragment implements View.OnClickListener, Dat
                 System.out.println("Uploading");
                 delegate.onUploadTrainingData();
                 break;
+            case R.id.button_preset:
+                System.out.println("Applying preset");
+                m.applyDefaultTrainingSet();
+                break;
             case R.id.button_clear:
                 System.out.println("Clearing");
                 m.clearTrainingData();
@@ -196,6 +201,7 @@ public class TrainFragment extends Fragment implements View.OnClickListener, Dat
         this.textview_sample_count = root.findViewById(R.id.textview_sample_count);
 
         this.button_upload = root.findViewById(R.id.button_upload);
+        this.button_preset = root.findViewById(R.id.button_preset);
         this.button_clear = root.findViewById(R.id.button_clear);
 
         // Setup the listview and assign it the adapter
@@ -207,6 +213,7 @@ public class TrainFragment extends Fragment implements View.OnClickListener, Dat
 
         // Set listeners
         this.button_upload.setOnClickListener(this);
+        this.button_preset.setOnClickListener(this);
         this.button_clear.setOnClickListener(this);
 
         // Refresh UI

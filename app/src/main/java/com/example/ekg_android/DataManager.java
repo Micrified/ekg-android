@@ -136,30 +136,39 @@ public class DataManager {
 
     // Generates a training set
     public void applyDefaultTrainingSet () {
+
+        // Clear the existing training data
+        this.training_data_n.clear();
+        this.training_data_a.clear();
+        this.training_data_v.clear();
+
+        // Default setpoint for normal heartbeats
         int n_amplitude = 2500;
         int n_period    = 1000;
 
+        // Default setpoint for atrial heartbeats
         int a_amplitude = 2500;
         int a_period    = 500;
 
+        // Default setpoint for ventrical heartbeats
         int v_amplitude = 800;
         int v_period    = 1000;
 
-        // Add Normal
+        // Add Normal (with noise)
         for (int i = 0; i < 20; ++i) {
             int noise = -5 + (int)(10.0 * Math.random());
             Sample n = new Sample(Classification.NORMAL, n_amplitude + noise, n_period + noise);
             this.addSample_N(n);
         }
 
-        // Add Atrail
+        // Add Atrail (with noise)
         for (int i = 0; i < 10; ++i) {
             int noise = -5 + (int)(10.0 * Math.random());
             Sample a = new Sample(Classification.ATRIAL, a_amplitude + noise, a_period + noise);
             this.addSample_A(a);
         }
 
-        // Add Ventrical
+        // Add Ventrical (with noise)
         for (int i = 0; i < 10; ++i) {
             int noise = -5 + (int)(10.0 * Math.random());
             Sample v = new Sample(Classification.VENTRICAL, v_amplitude + noise, v_period + noise);
@@ -172,8 +181,6 @@ public class DataManager {
         this.subscribers = new ArrayList<DataManagerInterface>();
         this.samples = new ArrayBlockingQueue<Sample>(100);
 
-        // Apply defaults
-        this.applyDefaultTrainingSet();
     }
 
     public static DataManager getInstance() {

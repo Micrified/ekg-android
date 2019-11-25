@@ -64,7 +64,7 @@ public class SettingDialog extends AppCompatDialogFragment implements AdapterVie
 
 
         builder.setView(view);
-        builder.setTitle("Settings");
+        builder.setTitle("Peak Detection");
         builder.setPositiveButton("Apply", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialogInterface, int i) {
