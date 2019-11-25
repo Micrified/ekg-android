@@ -173,7 +173,7 @@ public class Msg {
         return this;
     }
 
-    // Configures the instance to be a configuration method
+    // Configures the instance to be a configuration message
     public Msg configureAsConfigurationMessage (Comparator comparator, int value) {
 
         // Set the message type
@@ -182,6 +182,22 @@ public class Msg {
         // Set the comparator and value
         this.cfg_comp = comparator;
         this.cfg_val = value;
+
+        return this;
+    }
+
+    // Configure the instance to be a training data message
+    public Msg configureAsTrainingMessage (ArrayList<Sample> normal_training_data,
+                                           ArrayList<Sample> atrial_training_data,
+                                           ArrayList<Sample> ventrical_training_data) {
+
+        // Set the message type
+        this.msgType = MsgType.MSG_TYPE_TRAIN_DATA;
+
+        // Set the training arrays
+        this.normal_training_data = normal_training_data;
+        this.atrial_training_data = atrial_training_data;
+        this.ventrical_training_data = ventrical_training_data;
 
         return this;
     }
@@ -348,16 +364,16 @@ public class Msg {
             case MSG_TYPE_TRAIN_DATA: {
 
                 // Write N periods
-                for (int i = 0; i < 20; i += 2) {
-                    int v = this.normal_training_data.get(i).getPeriod();
+                for (int i = 0; i < 40; i += 2) {
+                    int v = this.normal_training_data.get(i / 2).getPeriod();
                     buffer[offset + i + 0] = (byte)((v >> 0) & 0xFF);       // LSB first
                     buffer[offset + i + 1] = (byte)((v >> 8) & 0xFF);       // MSB second
                 }
                 offset += (2 * 20);
 
                 // Write N amplitudes
-                for (int i = 0; i < 20; i += 2) {
-                    int v = this.normal_training_data.get(i).getAmplitude();
+                for (int i = 0; i < 40; i += 2) {
+                    int v = this.normal_training_data.get(i / 2).getAmplitude();
                     buffer[offset + i + 0] = (byte)((v >> 0) & 0xFF);       // LSB first
                     buffer[offset + i + 1] = (byte)((v >> 8) & 0xFF);       // MSB second
                 }
@@ -365,16 +381,16 @@ public class Msg {
 
 
                 // Write A periods
-                for (int i = 0; i < 10; i += 2) {
-                    int v = this.atrial_training_data.get(i).getPeriod();
+                for (int i = 0; i < 20; i += 2) {
+                    int v = this.atrial_training_data.get(i / 2).getPeriod();
                     buffer[offset + i + 0] = (byte)((v >> 0) & 0xFF);       // LSB first
                     buffer[offset + i + 1] = (byte)((v >> 8) & 0xFF);       // MSB second
                 }
                 offset += (2 * 10);
 
                 // Write A amplitudes
-                for (int i = 0; i < 10; i += 2) {
-                    int v = this.atrial_training_data.get(i).getAmplitude();
+                for (int i = 0; i < 20; i += 2) {
+                    int v = this.atrial_training_data.get(i / 2).getAmplitude();
                     buffer[offset + i + 0] = (byte)((v >> 0) & 0xFF);       // LSB first
                     buffer[offset + i + 1] = (byte)((v >> 8) & 0xFF);       // MSB second
                 }
@@ -382,16 +398,16 @@ public class Msg {
 
 
                 // Write V periods
-                for (int i = 0; i < 10; i += 2) {
-                    int v = this.ventrical_training_data.get(i).getPeriod();
+                for (int i = 0; i < 20; i += 2) {
+                    int v = this.ventrical_training_data.get(i / 2).getPeriod();
                     buffer[offset + i + 0] = (byte)((v >> 0) & 0xFF);       // LSB first
                     buffer[offset + i + 1] = (byte)((v >> 8) & 0xFF);       // MSB second
                 }
                 offset += (2 * 10);
 
                 // Write V amplitudes
-                for (int i = 0; i < 10; i += 2) {
-                    int v = this.ventrical_training_data.get(i).getAmplitude();
+                for (int i = 0; i < 20; i += 2) {
+                    int v = this.ventrical_training_data.get(i / 2).getAmplitude();
                     buffer[offset + i + 0] = (byte)((v >> 0) & 0xFF);       // LSB first
                     buffer[offset + i + 1] = (byte)((v >> 8) & 0xFF);       // MSB second
                 }

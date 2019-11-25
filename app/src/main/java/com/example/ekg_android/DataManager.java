@@ -111,6 +111,18 @@ public class DataManager {
         this.subscribers.add(subscriber);
     }
 
+    // Getters
+    public ArrayList<Sample> getNormalTrainingData () {
+        return this.training_data_n;
+    }
+    public ArrayList<Sample> getAtrialTrainingData () {
+        return this.training_data_a;
+    }
+    public ArrayList<Sample> getVentricalTrainingData () {
+        return this.training_data_v;
+    }
+
+
     // Insertion methods
     public void addSample_A (Sample s) {
         training_data_a.add(s);
@@ -122,10 +134,46 @@ public class DataManager {
         training_data_v.add(s);
     }
 
+    // Generates a training set
+    public void applyDefaultTrainingSet () {
+        int n_amplitude = 2500;
+        int n_period    = 1000;
+
+        int a_amplitude = 2500;
+        int a_period    = 500;
+
+        int v_amplitude = 800;
+        int v_period    = 1000;
+
+        // Add Normal
+        for (int i = 0; i < 20; ++i) {
+            int noise = -5 + (int)(10.0 * Math.random());
+            Sample n = new Sample(Classification.NORMAL, n_amplitude + noise, n_period + noise);
+            this.addSample_N(n);
+        }
+
+        // Add Atrail
+        for (int i = 0; i < 10; ++i) {
+            int noise = -5 + (int)(10.0 * Math.random());
+            Sample a = new Sample(Classification.ATRIAL, a_amplitude + noise, a_period + noise);
+            this.addSample_A(a);
+        }
+
+        // Add Ventrical
+        for (int i = 0; i < 10; ++i) {
+            int noise = -5 + (int)(10.0 * Math.random());
+            Sample v = new Sample(Classification.VENTRICAL, v_amplitude + noise, v_period + noise);
+            this.addSample_V(v);
+        }
+    }
+
     // Private Constructor
     private DataManager(){
         this.subscribers = new ArrayList<DataManagerInterface>();
         this.samples = new ArrayBlockingQueue<Sample>(100);
+
+        // Apply defaults
+        this.applyDefaultTrainingSet();
     }
 
     public static DataManager getInstance() {

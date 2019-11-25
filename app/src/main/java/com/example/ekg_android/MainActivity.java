@@ -16,7 +16,9 @@ import android.widget.TextView;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.snackbar.Snackbar;
 
-public class MainActivity extends AppCompatActivity implements DeviceBluetoothInterface, View.OnClickListener, SettingDialog.SettingDialogListener {
+import java.util.ArrayList;
+
+public class MainActivity extends AppCompatActivity implements DeviceBluetoothInterface, View.OnClickListener, SettingDialog.SettingDialogListener, TrainFragmentInterface {
 
 
     // Bluetooth Manager
@@ -31,6 +33,10 @@ public class MainActivity extends AppCompatActivity implements DeviceBluetoothIn
 
     // Settings/Configuration button
     private Button button_settings;
+
+    // Fragments
+    private TrainFragment trainFragment;
+    private MonitorFragment monitorFragment;
 
 
     /*
@@ -76,12 +82,18 @@ public class MainActivity extends AppCompatActivity implements DeviceBluetoothIn
             Fragment selectedFragment = null;
             switch (menuItem.getItemId()) {
                 case R.id.nav_monitor: {
-                    selectedFragment = new MonitorFragment();
+                    if (MainActivity.this.monitorFragment == null) {
+                        MainActivity.this.monitorFragment = new MonitorFragment();
+                    }
+                    selectedFragment = MainActivity.this.monitorFragment;
                 }
                 break;
 
                 case R.id.nav_train: {
-                    selectedFragment = new TrainFragment();
+                    if (MainActivity.this.trainFragment == null) {
+                        MainActivity.this.trainFragment = new TrainFragment(MainActivity.this);
+                    }
+                    selectedFragment = MainActivity.this.trainFragment;
                 }
                 break;
             }
@@ -332,6 +344,60 @@ public class MainActivity extends AppCompatActivity implements DeviceBluetoothIn
                 exception.printStackTrace();
             }
         }
+
+    }
+
+    @Override
+    public void onUploadTrainingData() {
+        DataManager m = DataManager.getInstance();
+        System.out.println("onUploadTrainingData()!");
+
+        // Extract the Training Data Arrays
+        ArrayList<Sample> ns = m.getNormalTrainingData();
+        ArrayList<Sample> as = m.getAtrialTrainingData();
+        ArrayList<Sample> vs = m.getVentricalTrainingData();
+
+        // Validate the Training Data Arrays
+        if (ns.size() != 20 || as.size() != 10 || vs.size() != 10) {
+            Log.e("MainActivity", "Improperly sized training data arrays!");
+            return;
+        }
+
+        // Create the training data message
+        final Msg msg = new Msg();
+        msg.configureAsTrainingMessage(ns, as, vs);
+
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+
+                // Attempt to serialize the message
+                try {
+                    Msg.MsgData data = msg.getSerialized();
+
+                    // Enqueue the message for automatic dispatch
+                    bluetoothManager.enqueueMessageBuffer(data.data);
+
+                } catch (MessageSerializationException exception) {
+                    exception.printStackTrace();
+                }
+
+                // Reconfigure the message to update configuration
+                msg.configureAsInstructionDataMessage(MsgInstructionType.INST_EKG_CONFIGURE);
+
+
+                // Attempt to serialize the message
+                try {
+                    Msg.MsgData data = msg.getSerialized();
+
+                    // Enqueue the message for automatic disaptch
+                    bluetoothManager.enqueueMessageBuffer(data.data);
+
+                } catch (MessageSerializationException exception) {
+                    exception.printStackTrace();
+                }
+            }
+        });
 
     }
 }

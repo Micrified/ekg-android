@@ -19,7 +19,11 @@ import androidx.fragment.app.Fragment;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 
+
 public class TrainFragment extends Fragment implements View.OnClickListener, DataManagerInterface {
+
+    // Delegate
+    TrainFragmentInterface delegate;
 
     // Textviews
     private TextView textview_n_count;
@@ -118,6 +122,7 @@ public class TrainFragment extends Fragment implements View.OnClickListener, Dat
         switch (view.getId()) {
             case R.id.button_upload:
                 System.out.println("Uploading");
+                delegate.onUploadTrainingData();
                 break;
             case R.id.button_clear:
                 System.out.println("Clearing");
@@ -171,6 +176,12 @@ public class TrainFragment extends Fragment implements View.OnClickListener, Dat
 
         // Update the sample count textview
         this.textview_sample_count.setText(String.format("%2d Samples Available", m.getSampleCount()));
+    }
+
+
+    // Constructor
+    public TrainFragment (TrainFragmentInterface delegate) {
+        this.delegate = delegate;
     }
 
     @Nullable
@@ -260,3 +271,5 @@ public class TrainFragment extends Fragment implements View.OnClickListener, Dat
                 DataManager.getInstance().getSampleCount()));
     }
 }
+
+
