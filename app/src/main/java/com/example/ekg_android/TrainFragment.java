@@ -236,20 +236,24 @@ public class TrainFragment extends Fragment implements View.OnClickListener, Dat
             case NORMAL:
                 if (m.getCount_N() >= m.max_count_n) {
                     showAlert("Discarding sample (N): At capacity!");
+                } else {
+                    m.addSample_N(sample);
                 }
-                m.addSample_N(sample);
                 break;
             case ATRIAL:
                 if (m.getCount_A() >= m.max_count_a) {
                     showAlert("Discarding sample (A): At capacity!");
+                } else {
+                    m.addSample_A(sample);
                 }
-                m.addSample_A(sample);
+
                 break;
             case VENTRICAL:
                 if (m.getCount_V() >= m.max_count_v) {
                     showAlert("Discarding sample (V): At capacity!");
+                } else {
+                    m.addSample_V(sample);
                 }
-                m.addSample_V(sample);
                 break;
         }
     }

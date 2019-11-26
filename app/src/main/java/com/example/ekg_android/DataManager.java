@@ -6,6 +6,9 @@ import java.util.concurrent.ArrayBlockingQueue;
 
 public class DataManager {
 
+    // Public reference to the notification channel ID
+    public static final String channel_id = "444";
+
     // Internal reference to singleton class instance
     private static volatile DataManager singleton = new DataManager();
 
@@ -19,6 +22,9 @@ public class DataManager {
     public static final int max_count_a = 10;
     public static final int max_count_n = 20;
     public static final int max_count_v = 10;
+
+    // Unique notification ID generator
+    private int notification_id = 0;
 
     // Training data features
     ArrayList<Sample> training_data_a = new ArrayList<Sample>();
@@ -38,6 +44,11 @@ public class DataManager {
     }
     public int getCount_V () {
         return this.training_data_v.size();
+    }
+
+    // Returns a new notification ID
+    public int getNotificationID () {
+        return this.notification_id++;
     }
 
     // Clear Method for the training data

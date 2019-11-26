@@ -5,6 +5,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Message;
 import android.util.Log;
@@ -74,6 +77,19 @@ public class MainActivity extends AppCompatActivity implements DeviceBluetoothIn
         this.button_settings.setBackgroundResource(R.drawable.ic_settings_applications_black_24dp);
         this.button_settings.setOnClickListener(this);
 
+        // Setup a notification channel
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            CharSequence name = getString(R.string.channel_name);
+            String description = getString(R.string.channel_description);
+            int importance = NotificationManager.IMPORTANCE_DEFAULT;
+            NotificationChannel channel = new NotificationChannel(DataManager.channel_id, name, importance);
+            channel.setDescription(description);
+
+            // Registering channel
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
+
+        }
     }
 
     private BottomNavigationView.OnNavigationItemSelectedListener navigationListener = new BottomNavigationView.OnNavigationItemSelectedListener() {
@@ -228,7 +244,6 @@ public class MainActivity extends AppCompatActivity implements DeviceBluetoothIn
                 try {
                     Msg msg = new Msg().fromByteBuffer(value);
                     if (msg.getMessageType() == MsgType.MSG_TYPE_SAMPLE_DATA) {
-                        System.out.printf("Sample: Label = %s\tAmplitude = %d\tRR-Period = %d\n", msg.get_sample_label().toString(), msg.get_sample_amplitude(), msg.get_sample_period());
                         DataManager.getInstance().addSample(new Sample(msg.get_sample_label(), msg.get_sample_amplitude(), msg.get_sample_period()));
                     }
                 } catch (MessageSerializationException exception) {
@@ -237,13 +252,6 @@ public class MainActivity extends AppCompatActivity implements DeviceBluetoothIn
 
             }
         });
-        // If sample and training not finished -> then push to sample queue
-        // If training not finished, it should be in sampling mode
-
-        // If training finished, it should be in monitor mode
-
-
-        // If sample and training finished -> push to monitor queue
     }
 
     @Override

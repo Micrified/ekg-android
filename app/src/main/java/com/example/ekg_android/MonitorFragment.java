@@ -1,5 +1,7 @@
 package com.example.ekg_android;
 
+import android.app.PendingIntent;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -10,6 +12,8 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 import androidx.fragment.app.Fragment;
 
 import java.text.SimpleDateFormat;
@@ -89,6 +93,7 @@ public class MonitorFragment extends Fragment implements DataManagerInterface {
 
     @Override
     public void onNewSample(Sample sample) {
+        DataManager m = DataManager.getInstance();
 
         // Ignore sample unless it is critical
         if (sample.getLabel() != Classification.ATRIAL &&
@@ -104,5 +109,21 @@ public class MonitorFragment extends Fragment implements DataManagerInterface {
 
         // Refresh the listview
         this.adapter.notifyDataSetChanged();
+
+
+        // Generate a notification (without intent)
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(getContext(), DataManager.channel_id)
+                .setSmallIcon(R.drawable.ic_nav_monitor)
+                .setContentTitle("Heart Arrhythmia!")
+                .setContentText("Detected a " + sample.getLabel().toString() + " signature pattern!")
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setAutoCancel(true);
+
+
+        // Get the notification manager
+        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getContext());
+
+        // getNotificationID() returns a unique notification ID in compliance with usage
+        notificationManager.notify(m.getNotificationID(), builder.build());
     }
 }
