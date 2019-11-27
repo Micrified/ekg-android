@@ -1,6 +1,8 @@
 package com.example.ekg_android;
 
+import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -28,6 +30,9 @@ public class MonitorFragment extends Fragment implements DataManagerInterface {
 
     // List of events
     private ArrayList<Event> events;
+
+    // Delegate
+    private MonitorFragmentInterface delegate;
 
 
     // Adapter for the listview
@@ -70,6 +75,10 @@ public class MonitorFragment extends Fragment implements DataManagerInterface {
         }
     };
 
+    // Constructor
+    public MonitorFragment (MonitorFragmentInterface delegate) {
+        this.delegate = delegate;
+    }
 
     @Nullable
     @Override
@@ -110,20 +119,7 @@ public class MonitorFragment extends Fragment implements DataManagerInterface {
         // Refresh the listview
         this.adapter.notifyDataSetChanged();
 
-
-        // Generate a notification (without intent)
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(getContext(), DataManager.channel_id)
-                .setSmallIcon(R.drawable.ic_nav_monitor)
-                .setContentTitle("Heart Arrhythmia!")
-                .setContentText("Detected a " + sample.getLabel().toString() + " signature pattern!")
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                .setAutoCancel(true);
-
-
-        // Get the notification manager
-        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getContext());
-
-        // getNotificationID() returns a unique notification ID in compliance with usage
-        notificationManager.notify(m.getNotificationID(), builder.build());
+        // Dispatch notification
+        this.delegate.onDisplayNotification(sample);
     }
 }

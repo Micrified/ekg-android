@@ -261,7 +261,7 @@ public class DeviceBluetoothManager {
         public void onCharacteristicChanged (BluetoothGatt gatt, BluetoothGattCharacteristic
                                              characteristic) {
             super.onCharacteristicChanged(gatt, characteristic);
-            Log.e("BLE", "onCharacteristicChanged");
+
             // Extract response data
             byte[] characteristic_value_data = characteristic.getValue();
 

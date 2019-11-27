@@ -2,6 +2,8 @@ package com.example.ekg_android;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
@@ -21,7 +23,7 @@ import com.google.android.material.snackbar.Snackbar;
 
 import java.util.ArrayList;
 
-public class MainActivity extends AppCompatActivity implements DeviceBluetoothInterface, View.OnClickListener, SettingDialog.SettingDialogListener, TrainFragmentInterface {
+public class MainActivity extends AppCompatActivity implements DeviceBluetoothInterface, View.OnClickListener, SettingDialog.SettingDialogListener, TrainFragmentInterface, MonitorFragmentInterface {
 
 
     // Bluetooth Manager
@@ -64,7 +66,7 @@ public class MainActivity extends AppCompatActivity implements DeviceBluetoothIn
         bottom_navigation.setOnNavigationItemSelectedListener(navigationListener);
 
         bottom_navigation.setSelectedItemId(R.id.nav_monitor);
-        getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, new MonitorFragment()).commit();
+        getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, new MonitorFragment(this)).commit();
 
         // Add the connection state textview
         this.textView_connection_state = findViewById(R.id.textview_connection_state);
@@ -99,7 +101,7 @@ public class MainActivity extends AppCompatActivity implements DeviceBluetoothIn
             switch (menuItem.getItemId()) {
                 case R.id.nav_monitor: {
                     if (MainActivity.this.monitorFragment == null) {
-                        MainActivity.this.monitorFragment = new MonitorFragment();
+                        MainActivity.this.monitorFragment = new MonitorFragment(MainActivity.this);
                     }
                     selectedFragment = MainActivity.this.monitorFragment;
                 }
@@ -244,6 +246,7 @@ public class MainActivity extends AppCompatActivity implements DeviceBluetoothIn
                 try {
                     Msg msg = new Msg().fromByteBuffer(value);
                     if (msg.getMessageType() == MsgType.MSG_TYPE_SAMPLE_DATA) {
+                        Log.i("BLE", "New Sample (TYPE = " + msg.get_sample_label() + ")");
                         DataManager.getInstance().addSample(new Sample(msg.get_sample_label(), msg.get_sample_amplitude(), msg.get_sample_period()));
                     }
                 } catch (MessageSerializationException exception) {
@@ -270,6 +273,25 @@ public class MainActivity extends AppCompatActivity implements DeviceBluetoothIn
      *******************************************************************************
     */
 
+    // Displays a notification
+    public void displayNotificationForSample (Sample sample) {
+        DataManager m = DataManager.getInstance();
+
+        // Generate a notification (without intent)
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, DataManager.channel_id)
+                .setSmallIcon(R.drawable.ic_nav_monitor)
+                .setContentTitle("Heart Arrhythmia!")
+                .setContentText("Detected a " + sample.getLabel().toString() + " signature pattern!")
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setAutoCancel(true);
+
+
+        // Get the notification manager
+        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
+
+        // getNotificationID() returns a unique notification ID in compliance with usage
+        notificationManager.notify(m.getNotificationID(), builder.build());
+    }
 
     // Display a temporary message acknowledging an action
     public void displayActionSnackbar (String msg) {
@@ -407,5 +429,10 @@ public class MainActivity extends AppCompatActivity implements DeviceBluetoothIn
             }
         });
 
+    }
+
+    @Override
+    public void onDisplayNotification(Sample sample) {
+        this.displayNotificationForSample(sample);
     }
 }
